@@ -1,0 +1,62 @@
+ # Global Configuration
+ServerRoot "/etc/apache2"
+
+# Number of worker processes (adjust as needed)
+<IfModule mpm_worker_module>
+    StartServers          2
+    MinSpareThreads      25
+    MaxSpareThreads      75
+    ThreadLimit          64
+    ThreadsPerChild      25
+    MaxRequestWorkers    150
+    MaxConnectionsPerChild 0
+</IfModule>
+
+# Logging
+ErrorLog "/var/log/apache2/error.log"
+LogLevel warn
+LogFormat "%h %l %u %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-Agent}i\"" combined
+CustomLog "/var/log/apache2/access.log" combined
+
+# KeepAlive settings
+KeepAlive On
+MaxKeepAliveRequests 100
+KeepAliveTimeout 65
+
+
+
+# Default Virtual Host
+<VirtualHost *:80>
+    ServerName YOUR_DOMAIN_OR_PUBLIC_IP
+    DocumentRoot "/home/ubuntu/web-tier/build"
+
+
+
+    # Permissions for DocumentRoot
+    <Directory "/home/ubuntu/web-tier/build">
+        Options -Indexes +FollowSymLinks
+        AllowOverride All
+        Require all granted
+    </Directory>
+
+    # Health Check Route
+    <Location /health>
+        Require all granted
+        SetHandler None
+    </Location>
+
+    # React App Handling
+    <Location />
+        DirectoryIndex index.html index.htm
+        Options -Indexes +FollowSymLinks
+        AllowOverride All
+        Require all granted
+    </Location>
+
+    # API Proxy to Internal Load Balancer
+    <Location /api/>
+        ProxyPass http://INTERNAL-ALB-DNS:80/
+        ProxyPassReverse http://INTERNAL-ALB-DNS:80/
+    </Location>
+</VirtualHost>
+
